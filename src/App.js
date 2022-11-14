@@ -1,195 +1,161 @@
 /* eslint-disable array-callback-return */
-import React, { useRef, useState } from "react";
-import { useForm } from "react-hook-form";
+import React, { useEffect, useState } from "react";
 import "./App.css";
+import SearchForm from "./Components/searchForm";
 import TodoFrom from "./Components/todoFrom";
+import TodoList from "./Components/todoList";
+
+const getDataLS = () => {
+  const data = localStorage.getItem("listTodo");
+  if (data) {
+    return JSON.parse(data);
+  } else {
+    return [];
+  }
+};
 
 function App() {
-  const [checked, setChecked] = useState(false);
   const [open, setOpen] = useState(false);
-  const [updateData, setUpdateData] = useState([]);
-  const [list, setList] = useState([]);
-
-  const handleChecked = (data) => {
-    setChecked(!checked);
-    console.log(checked);
-  };
+  const [list, setList] = useState(getDataLS());
+  const [chooseList, setChoose] = useState([]);
+  const [query, setQuery] = useState("");
 
   function handleOpen() {
     setOpen(!open);
   }
-  function handleOpenDetail(task, idx) {
-    setUpdateData(task);
-  }
+
   function handleListTodo(todo) {
     const newTodo = [...list, todo];
-
     setList(newTodo);
   }
-  const changeTitle = (e) => {
-    let newEntry = {
-      ...updateData,
-      title: e.target.value,
-    };
-    setUpdateData(newEntry);
-  };
 
-  const changeDes = (e) => {
-    let newEntry = {
-      ...updateData,
-      des: e.target.value,
-    };
-    setUpdateData(newEntry);
-  };
-
-  const changeDate = (e) => {
-    let newEntry = {
-      ...updateData,
-      date: e.target.value,
-    };
-    setUpdateData(newEntry);
-  };
-
-  const changeSelect = (e) => {
-    let newEntry = {
-      ...updateData,
-      select: e.target.value,
-    };
-    setUpdateData(newEntry);
-  };
-
-  function handleCancel(e) {
-    setUpdateData([]);
+  function handleDeleteTodo(task) {
+    const newTasks = list.filter((list) => list.id !== task.id);
+    const deleteChoose = chooseList.filter((list) => list.id !== task.id);
+    setChoose(deleteChoose);
+    setList(newTasks);
   }
 
-  const onSubmit = (e) => {
-    e.preventDefault();
+  function handleUpdateTodo(todoChange) {
+    const newTodo = todoChange;
+    const filterList = [...list].map((task) => {
+      if (task.id === todoChange.id) {
+        return newTodo;
+      } else {
+        return task;
+      }
+    });
+    setList(filterList);
+  }
 
-    console.log(updateData);
-    setUpdateData([]);
+  function handleSelected(todoChange) {
+    if (todoChange.check === false) {
+      const newListTodo = [...list].map((value) => {
+        if (value.id === todoChange.id) {
+          const newTodo = {
+            ...todoChange,
+            check: !todoChange.check,
+          };
+          const newChoose = [...chooseList, newTodo];
+          setChoose(newChoose);
+          return newTodo;
+        } else {
+          return value;
+        }
+      });
+      return setList(newListTodo);
+    }
+    const deleteChoose = chooseList.filter((list) => list.id !== todoChange.id);
+    setChoose(deleteChoose);
+    const newListTodo = [...list].map((value) => {
+      if (value.id === todoChange.id) {
+        const newTodo = {
+          ...todoChange,
+          check: !todoChange.check,
+        };
+        return newTodo;
+      } else {
+        return value;
+      }
+    });
+    return setList(newListTodo);
+  }
+
+  function deleteSelected() {
+    const newTask = list.filter((list) => list.check !== true);
+    const unCheck = newTask.filter((list) => list.check === true);
+    setChoose(unCheck);
+    setList(newTask);
+  }
+
+  function handleSearch(query) {
+    setQuery(query);
+  }
+
+  const search = (data) => {
+    return data.filter((item) => item.title.toLowerCase().includes(query));
   };
 
-  return (
-    <div className="mx-auto mt-6">
-      <h1 className=" font-bold text-center text-xl mb-3">To do List</h1>
-      <div className="text-center">
-        <button
-          onClick={handleOpen}
-          className="px-3 py-2 rounded-lg text-white mr-4  bg-[#2196F3]"
-        >
-          create new todo
-        </button>
-      </div>
-      <div className="w-[700px] mt-8 mx-auto">
-        {list && list.length ? "" : "Let's add what you have to do ! 😎"}
+  useEffect(() => {
+    localStorage.setItem("listTodo", JSON.stringify(list));
+  }, [list]);
 
-        {list.map((task, index) => (
-          <div key={index} className="rounded-md  border-[1px] mb-3 p-4">
-            <div className="flex justify-between px-5 py-3 ">
-              <div className="flex">
-                <input className="mr-2" type="checkbox" />
-                <h2 className=" my-auto">{task.title} </h2>
-              </div>
-              <div>
-                <button
-                  className="px-3 py-2 rounded-lg text-white mr-4 w-24 bg-[#2196F3]"
-                  onClick={() => {
-                    handleOpenDetail(task, index);
-                  }}
-                >
-                  Detail
-                </button>
-                <button className="px-3 py-2 rounded-lg text-white w-24 bg-red-600">
-                  Remove
-                </button>
-              </div>
-            </div>
-            {updateData.id === task.id && (
-              <div className="border-t-[1px] ">
-                <form className="mt-4" onSubmit={onSubmit}>
-                  <input
-                    id="title"
-                    type="text"
-                    value={updateData.title}
-                    className="w-full my-2 px-4 py-3 rounded-lg border-[1px] outline-0 border-b-gray3 mb-2"
-                    onChange={(e) => changeTitle(e)}
-                  />
-                  <p className="text-sm text-red-500 mb-2"></p>
-                  <h2 className="font-medium">Description</h2>
-                  <textarea
-                    id="des"
-                    defaultValue={updateData.des}
-                    rows={4}
-                    cols={40}
-                    placeholder="Change your description"
-                    onChange={(e) => changeDes(e)}
-                    className="w-full my-2 px-4 py-3 rounded-lg border-[1px] outline-0 border-b-gray3 mb-2"
-                  />
-                  <div className="flex">
-                    <div className="w-2/4 mr-3">
-                      <input
-                        id="date"
-                        defaultValue={updateData.date}
-                        onChange={(e) => changeDate(e)}
-                        className="w-full h-[52px] my-2 px-4 py-3 rounded-lg border-[1px] mr-3"
-                        type="date"
-                      />
-                    </div>
-                    <div className="w-2/4 mb-2 ">
-                      <select
-                        id="select"
-                        onChange={(e) => changeSelect(e)}
-                        defaultValue={updateData.select}
-                        className="w-full  h-[52px]  my-2 px-4 py-3 rounded-lg border-[1px] "
-                      >
-                        <option value="low">Low</option>
-                        <option value="normal">Normal</option>
-                        <option value="hight">Hight</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="flex">
-                    <button
-                      type="button"
-                      onClick={handleCancel}
-                      className=" px-3 py-2 rounded-lg  border-[1px] border-red-600 bg-white text-red-600 hover:text-white hover:bg-red-600 mr-3"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      // onClick={handleCancel}
-                      type="submit"
-                      className=" px-3 py-2 rounded-lg text-white  bg-[#2196F3] mr-3"
-                    >
-                      Update
-                    </button>
-                  </div>
-                </form>
-              </div>
-            )}
-          </div>
-        ))}
+  return (
+    <div className="sm:mx-auto mt-6">
+      <h1 className=" font-bold text-center text-xl mb-3">Task List</h1>
+      <div className="text-center  w-full  justify-between sm:flex sm:w-[500px] mx-auto px-5">
+        <SearchForm handleSearch={handleSearch} />
+        <div className=" sm:w-1/3 ">
+          <button
+            onClick={handleOpen}
+            className="px-3 w-full  py-2 rounded-lg text-white bg-[#2196F3]"
+          >
+            Create new task
+          </button>
+        </div>
       </div>
-      {/* <div className="flex w-full border-t-[1px] bottom-0 h-20 justify-between fixed px-48 bg-slate-100">
-        <div className="my-auto">
-          <h2>Bulk Action</h2>
-        </div>
-        <div className="my-auto">
-          <button className="px-3 py-2 rounded-lg text-white mr-4 w-24 bg-[#2196F3]">
-            Detail
-          </button>
-          <button className="px-3 py-2 rounded-lg text-white w-24 bg-red-600">
-            Remove
-          </button>
-        </div>
-      </div> */}
+      <div className="sm:w-[700px] mb-24 mt-8 mx-auto ">
+        {list && list.length ? (
+          ""
+        ) : (
+          <h2 className="text-center">Let's add what your task ! 👾 </h2>
+        )}
+        <TodoList
+          list={search(list)}
+          handleDeleteTodo={handleDeleteTodo}
+          handleUpdateTodo={handleUpdateTodo}
+          handleSelected={handleSelected}
+          chooseList={chooseList}
+        />
+      </div>
+
       <div
         className={`${
-          open ? "w-full  pt-10   h-full bg-white fixed z-30 top-0" : "hidden"
+          open ? "w-full   pt-10   h-full bg-white fixed z-30 top-0" : "hidden"
         }`}
       >
         <TodoFrom handleOpen={handleOpen} handleListTodo={handleListTodo} />
       </div>
+      {chooseList.length ? (
+        <div className="flex w-full border-t-[1px] bottom-0 h-20 justify-between fixed px-4 sm:px-48  bg-slate-100">
+          <div className="my-auto">
+            <h2>Bulk Action</h2>
+          </div>
+          <div className="my-auto flex">
+            <button className="px-3 py-2 rounded-lg text-white mr-4 w-24 bg-[#2196F3]">
+              Detail
+            </button>
+            <button
+              className="px-3 py-2 rounded-lg text-white w-24 bg-red-600"
+              onClick={deleteSelected}
+            >
+              Remove
+            </button>
+          </div>
+        </div>
+      ) : (
+        ""
+      )}
     </div>
   );
 }
